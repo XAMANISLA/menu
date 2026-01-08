@@ -3,6 +3,7 @@ let productos = [];
 let categorias = [];
 let carrito = [];
 let mesaActual = localStorage.getItem('mesa_actual');
+let mesaNombre = localStorage.getItem('mesa_nombre') || `Mesa ${mesaActual}`;
 let searchQuery = '';
 let categoriaActual = 'Todos';
 
@@ -24,12 +25,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = 'index.html';
         return;
     }
-    labelMesa.innerText = `Mesa: ${mesaActual}`;
+    labelMesa.innerText = mesaNombre;
 
     // Actualizar título del carrito con la mesa
     const cartTitle = document.getElementById('cart-title');
     if (cartTitle) {
-        cartTitle.innerText = `Tu Pedido Mesa ${mesaActual}`;
+        cartTitle.innerText = `Tu Pedido - ${mesaNombre}`;
     }
 
     await cargarProductos();

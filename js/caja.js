@@ -88,14 +88,17 @@ function renderizarMesas() {
         card.className = `table-card cursor-pointer bg-white rounded-[2rem] p-8 shadow-sm border-2 transition-all flex flex-col items-center justify-center text-center ${isActive ? 'border-[#84a98c] shadow-[#84a98c]/10' : 'border-gray-50 opacity-40 hover:opacity-100'}`;
 
         card.innerHTML = `
-            <div class="w-20 h-20 rounded-3xl flex items-center justify-center mb-6 ${isActive ? 'bg-[#588157] text-white' : 'bg-gray-100 text-gray-300'}">
-                <i class="fas fa-chair text-3xl"></i>
+            <div class="w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-4 ${isActive ? 'bg-[#588157] text-white' : 'bg-gray-100 text-gray-300'}">
+                <i class="fas fa-chair text-2xl"></i>
             </div>
-            <h3 class="text-xl font-black text-[#3a5a40] uppercase tracking-tighter">Mesa ${mesa.numero}</h3>
-            <p class="text-sm font-bold mt-2 ${isActive ? 'text-[#588157]' : 'text-gray-400'}">
+            <h3 class="text-lg font-black text-[#3a5a40] uppercase tracking-tighter leading-tight mb-1">
+                ${mesa.nombre || `Mesa ${mesa.numero}`}
+                ${mesa.nombre ? `<span class="block text-[8px] text-gray-400 font-bold tracking-widest mt-1">ID: ${mesa.numero}</span>` : ''}
+            </h3>
+            <p class="text-xs font-bold ${isActive ? 'text-[#588157]' : 'text-gray-400'}">
                 ${isActive ? `$${mesa.acumulado.toFixed(2)}` : 'VACÍA'}
             </p>
-            ${isActive ? '<span class="mt-6 bg-[#588157]/10 text-[#588157] text-[9px] font-black px-4 py-1.5 rounded-full uppercase tracking-[0.2em] border border-[#588157]/20">Activa</span>' : ''}
+            ${isActive ? '<span class="mt-4 bg-[#588157]/10 text-[#588157] text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] border border-[#588157]/20">Activa</span>' : ''}
         `;
 
         if (isActive) {
@@ -107,7 +110,7 @@ function renderizarMesas() {
 
 async function verDetalleMesa(mesa) {
     mesaSeleccionada = mesa;
-    modalTitle.innerText = `MESA ${mesa.numero}`;
+    modalTitle.innerText = (mesa.nombre || `Mesa ${mesa.numero}`).toUpperCase();
     cuentaItems.innerHTML = '<div class="flex justify-center p-10"><i class="fas fa-circle-notch animate-spin text-4xl text-[#588157]"></i></div>';
 
     // Abrir modal
@@ -274,7 +277,7 @@ function imprimirTicket() {
 
     const printContent = `
 XAMAN - TICKET
-Mesa: ${mesaSeleccionada.numero}
+${mesaSeleccionada.nombre ? `${mesaSeleccionada.nombre} (ID: ${mesaSeleccionada.numero})` : `Mesa: ${mesaSeleccionada.numero}`}
 Fecha: ${new Date().toLocaleString()}
 ---------------------------
 ${itemsText}
@@ -287,18 +290,70 @@ TOTAL: ${modalTotal.innerText}
     alert('Ticket generado en consola (Simulación)');
 }
 
-function enviarEmailTicket() {
-    let itemsText = "";
-    const items = cuentaItems.querySelectorAll('.flex.justify-between');
+function mostrarTicket() {
+    if (!mesaSeleccionada) return;
+
+    const ticketModal = document.getElementById('modal-ticket');
+    const ticketContent = document.getElementById('ticket-content');
+    const itemsList = document.getElementById('ticket-items-list');
+
+    // Datos básicos
+    document.getElementById('ticket-fecha').innerText = new Date().toLocaleString();
+    document.getElementById('ticket-mesa').innerText = (mesaSeleccionada.nombre || `Mesa ${mesaSeleccionada.numero}`).toUpperCase();
+
+    // Items
+    itemsList.innerHTML = '';
+    const items = cuentaItems.querySelectorAll('.py-4.border-b');
     items.forEach(item => {
-        itemsText += item.innerText.replace('\n', ' ') + "%0D%0A";
+        const qtySpan = item.querySelector('div.flex > span:first-child');
+        const nameSpan = item.querySelector('div.flex > span:nth-child(2)');
+        const totalSpan = item.querySelector(':scope > span:last-child');
+
+        if (qtySpan && nameSpan && totalSpan) {
+            const qty = qtySpan.innerText.replace('x', '');
+            const name = nameSpan.innerText;
+            const total = totalSpan.innerText;
+
+            const div = document.createElement('div');
+            div.className = "flex justify-between";
+            div.innerHTML = `<span>${qty}x ${name}</span> <span>${total}</span>`;
+            itemsList.appendChild(div);
+        }
     });
 
-    const fecha = new Date().toLocaleString();
-    const subject = `Ticket de Consumo - Mesa ${mesaSeleccionada.numero} - ${fecha}`;
-    const body = `XAMAN - TICKET%0D%0AMesa: ${mesaSeleccionada.numero}%0D%0AFecha: ${fecha}%0D%0A---------------------------%0D%0A${itemsText}---------------------------%0D%0ATOTAL: ${modalTotal.innerText}%0D%0A---------------------------%0D%0A¡Gracias por su visita!`;
+    // Totales
+    document.getElementById('ticket-subtotal').innerText = `$${subtotalActual.toFixed(2)}`;
 
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+    const rowDesc = document.getElementById('ticket-row-desc');
+    if (descuentoActual > 0) {
+        rowDesc.classList.remove('hidden');
+        document.getElementById('ticket-val-desc').innerText = `-$${descuentoActual.toFixed(2)}`;
+    } else {
+        rowDesc.classList.add('hidden');
+    }
+
+    const rowProp = document.getElementById('ticket-row-prop');
+    if (propinaActual > 0) {
+        rowProp.classList.remove('hidden');
+        document.getElementById('ticket-val-prop').innerText = `$${propinaActual.toFixed(2)}`;
+    } else {
+        rowProp.classList.add('hidden');
+    }
+
+    document.getElementById('ticket-total').innerText = modalTotal.innerText;
+
+    // Mostrar
+    ticketModal.classList.remove('invisible', 'opacity-0');
+    setTimeout(() => ticketContent.classList.replace('scale-95', 'scale-100'), 10);
+}
+
+function cerrarTicket() {
+    const ticketModal = document.getElementById('modal-ticket');
+    const ticketContent = document.getElementById('ticket-content');
+    ticketContent.classList.replace('scale-100', 'scale-95');
+    setTimeout(() => {
+        ticketModal.classList.add('invisible', 'opacity-0');
+    }, 300);
 }
 
 function seleccionarMetodo(metodo) {

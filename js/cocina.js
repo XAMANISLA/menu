@@ -19,7 +19,7 @@ async function cargarPedidos() {
             .from('pedidos')
             .select(`
                 *,
-                mesas(numero),
+                mesas(numero, nombre),
                 pedido_detalle(
                     *,
                     productos(nombre, categoria)
@@ -111,8 +111,9 @@ function renderizarPedidos() {
         card.innerHTML = `
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Mesa</span>
-                    <h3 class="text-4xl font-black text-[#3a5a40] tracking-tighter">${pedido.mesas.numero}</h3>
+                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Mesa / Espacio</span>
+                    <h3 class="text-3xl font-black text-[#3a5a40] tracking-tighter">${pedido.mesas.nombre || `Mesa ${pedido.mesas.numero}`}</h3>
+                    ${pedido.mesas.nombre ? `<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID: ${pedido.mesas.numero}</span>` : ''}
                 </div>
                 <div class="text-right">
                     <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Status</span>

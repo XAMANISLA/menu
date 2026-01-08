@@ -65,9 +65,10 @@
                         class="absolute inset-y-0 left-0 pl-5 flex items-center text-gray-400 group-focus-within:text-[#588157] transition-colors">
                         <i class="fas fa-hashtag"></i>
                     </span>
-                    <input type="number" id="mesa" name="mesa" required min="1" max="99"
-                        class="block w-full pl-12 pr-4 py-5 bg-white border border-gray-100 rounded-[2rem] text-gray-900 focus:ring-4 focus:ring-[#588157]/10 focus:border-[#588157] transition-all outline-none text-xl font-black"
-                        placeholder="Ej: 5">
+                    <select id="mesa" name="mesa" required
+                        class="block w-full pl-12 pr-4 py-5 bg-white border border-gray-100 rounded-[2rem] text-gray-900 focus:ring-4 focus:ring-[#588157]/10 focus:border-[#588157] transition-all outline-none text-xl font-black appearance-none">
+                        <option value="" disabled selected>Selecciona tu espacio</option>
+                    </select>
                 </div>
             </div>
 
@@ -79,26 +80,57 @@
         </form>
 
         <div
-            class="mt-10 pt-8 border-t border-gray-100/50 flex justify-between items-center text-[10px] font-bold text-gray-400 tracking-widest uppercase">
-            <span>By DevtrendMX</span>
-            <div class="flex gap-4">
+            class="mt-10 pt-8 border-t border-gray-100/50 flex flex-col items-center text-[10px] font-bold text-gray-400 tracking-widest uppercase">
+            <div class="flex gap-4 mb-4">
                 <a href="cocina.html" class="hover:text-[#588157] transition-colors">Cocina</a>
                 <a href="barra.html"
                     class="hover:text-[#588157] transition-colors border-l pl-4 border-gray-200">Barra</a>
                 <a href="caja.html"
                     class="hover:text-[#588157] transition-colors border-l pl-4 border-gray-200">Caja</a>
                 <a href="#" onclick="loginAdmin(event)"
-                    class="hover:text-[#588157] transition-colors opacity-60 ml-4">Admin</a>
+                    class="hover:text-[#588157] transition-colors border-l pl-4 border-gray-200 opacity-60">Admin</a>
             </div>
+            <span>By DevtrendMX</span>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
     <script>
+        async function cargarMesas() {
+            const select = document.getElementById('mesa');
+            try {
+                const { data, error } = await window.supabase
+                    .from('mesas')
+                    .select('*')
+                    .order('numero', { ascending: true });
+
+                if (error) throw error;
+
+                data.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.numero;
+                    // Guardamos el nombre en un atributo de datos para recuperarlo al enviar
+                    option.dataset.nombre = m.nombre || `Mesa ${m.numero}`;
+                    option.textContent = m.nombre || `Mesa ${m.numero}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error cargando mesas:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', cargarMesas);
+
         document.getElementById('loginForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            const mesa = document.getElementById('mesa').value;
-            if (mesa) {
-                localStorage.setItem('mesa_actual', mesa);
+            const select = document.getElementById('mesa');
+            const mesaNum = select.value;
+            const mesaNombre = select.options[select.selectedIndex].dataset.nombre;
+
+            if (mesaNum) {
+                localStorage.setItem('mesa_actual', mesaNum);
+                localStorage.setItem('mesa_nombre', mesaNombre);
                 window.location.href = 'menu.html';
             }
         });

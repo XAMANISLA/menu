@@ -199,9 +199,9 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="enviarEmailTicket()"
+                    <button onclick="mostrarTicket()"
                         class="w-full bg-gray-50 hover:bg-gray-100 text-gray-500 font-bold py-5 rounded-[2.5rem] transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 border border-gray-200">
-                        <i class="fas fa-envelope"></i>
+                        <i class="fas fa-receipt"></i>
                         <span class="hidden sm:inline">Ticket</span>
                     </button>
                     <button id="btn-cobrar" disabled
@@ -213,6 +213,70 @@
             </div>
         </div>
     </main>
+
+    <!-- Modal Previa Ticket (Simulación Impresión) -->
+    <div id="modal-ticket"
+        class="fixed inset-0 z-[100] invisible opacity-0 transition-all duration-300 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-md" onclick="cerrarTicket()"></div>
+        <div class="relative w-full max-w-sm bg-white shadow-2xl rounded-[2.5rem] overflow-hidden transform scale-95 transition-transform duration-300"
+            id="ticket-content">
+            <div class="p-8 bg-gray-50 border-b border-gray-100 text-center">
+                <div
+                    class="w-16 h-16 bg-[#588157]/10 rounded-2xl flex items-center justify-center text-[#588157] mx-auto mb-4">
+                    <i class="fas fa-receipt text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-black text-[#3a5a40] uppercase tracking-tighter">Previa de Ticket</h3>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Revisión de consumo</p>
+            </div>
+
+            <div class="p-8 bg-white max-h-[60vh] overflow-y-auto">
+                <div
+                    class="border-2 border-dashed border-gray-100 rounded-2xl p-6 font-mono text-xs text-gray-600 space-y-4">
+                    <div class="text-center border-b border-gray-100 pb-4">
+                        <img src="assets/logo.png" alt="Logo"
+                            class="w-16 h-16 mx-auto mb-4 object-contain filter grayscale opacity-80">
+                        <p class="font-black text-gray-800 text-sm uppercase mb-1">XAMAN - RESTAURANTE</p>
+                        <p id="ticket-fecha">--/--/-- --:--</p>
+                        <p id="ticket-mesa" class="font-bold text-[#588157]">--</p>
+                    </div>
+
+                    <div id="ticket-items-list" class="space-y-2 py-2">
+                        <!-- Items -->
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-4 space-y-1">
+                        <div class="flex justify-between">
+                            <span>SUBTOTAL:</span>
+                            <span id="ticket-subtotal">$0.00</span>
+                        </div>
+                        <div id="ticket-row-desc" class="flex justify-between text-red-500 hidden">
+                            <span>DESC:</span>
+                            <span id="ticket-val-desc">-$0.00</span>
+                        </div>
+                        <div id="ticket-row-prop" class="flex justify-between text-emerald-600 hidden">
+                            <span>PROPINA:</span>
+                            <span id="ticket-val-prop">$0.00</span>
+                        </div>
+                        <div class="flex justify-between font-black text-gray-800 text-sm pt-2 border-t border-gray-50">
+                            <span>TOTAL:</span>
+                            <span id="ticket-total">$0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="text-center pt-4 opacity-50 text-[9px] uppercase tracking-widest leading-relaxed">
+                        Explorando una gastronomía<br>más consciente.
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 bg-gray-50 grid grid-cols-1 gap-2">
+                <button onclick="cerrarTicket()"
+                    class="w-full bg-[#3a5a40] text-white font-black py-4 rounded-2xl shadow-lg uppercase tracking-widest text-[10px]">
+                    Cerrar Previa
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="caja-toast"
         class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-8 py-4 rounded-2xl shadow-2xl opacity-0 translate-y-10 transition-all duration-300 z-[70] flex items-center gap-4">
