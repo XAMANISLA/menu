@@ -57,12 +57,13 @@ async function cargarDatos() {
 }
 
 async function calcularVentasHoy() {
-    const hoy = new Date().toISOString().split('T')[0];
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
     const { data, error } = await window.supabase
         .from('pedidos')
         .select('total, metodo_pago')
         .eq('estado', 'pagado')
-        .gte('created_at', hoy);
+        .gte('created_at', hoy.toISOString());
 
     if (!error && data) {
         const totalEfectivo = data.filter(p => p.metodo_pago === 'efectivo').reduce((acc, p) => acc + (p.total || 0), 0);

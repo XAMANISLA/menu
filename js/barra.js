@@ -123,9 +123,14 @@ function renderizarPedidos() {
 
 async function cambiarEstado(pedidoId, nuevoEstado) {
     try {
+        const updateData = { estado: nuevoEstado };
+        if (nuevoEstado === 'servido') {
+            updateData.finished_at = new Date().toISOString();
+        }
+
         const { error } = await window.supabase
             .from('pedidos')
-            .update({ estado: nuevoEstado })
+            .update(updateData)
             .eq('id', pedidoId);
 
         if (error) throw error;

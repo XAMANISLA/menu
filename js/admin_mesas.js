@@ -158,14 +158,41 @@ async function eliminarMesa(id, numero) {
     if (!confirm(`¿Estás seguro de eliminar la Mesa ${numero}?`)) return;
 
     try {
+        // Intentar eliminar directamente
         const { error } = await window.supabase.from('mesas').delete().eq('id', id);
-        if (error) throw error;
 
-        showToast('Mesa eliminada');
+        if (error) {
+            // Si hay error por pedidos asociados (FK constraint)
+            if (error.code === '23503') {
+                if (confirm(`La Mesa ${numero} tiene historial de pedidos. ¿Deseas eliminar la mesa y desvincular su historial para conservarlo en reportes?`)) {
+                    // 1. Desvincular pedidos
+                    const { error: updateError } = await window.supabase
+                        .from('pedidos')
+                        .update({ mesa_id: null })
+                        .eq('mesa_id', id);
+
+                    if (updateError) throw updateError;
+
+                    // 2. Intentar eliminar la mesa de nuevo
+                    const { error: deleteRetryError } = await window.supabase
+                        .from('mesas')
+                        .delete()
+                        .eq('id', id);
+
+                    if (deleteRetryError) throw deleteRetryError;
+                } else {
+                    return;
+                }
+            } else {
+                throw error;
+            }
+        }
+
+        showToast('Mesa eliminada con éxito');
         await cargarMesas();
     } catch (error) {
         console.error('Error al eliminar:', error);
-        showToast('No se pudo eliminar la mesa (podría tener pedidos asociados)', 'error');
+        showToast('Error crítico al eliminar la mesa', 'error');
     }
 }
 
