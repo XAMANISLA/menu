@@ -73,7 +73,7 @@ function renderizarPedidos() {
             badgeColor = 'text-[#a3b18a]';
             statusLabel = 'Recibido';
             actionBtn = `
-                <button onclick="cambiarEstado('${pedido.id}', 'preparado')" class="w-full bg-[#588157] hover:bg-[#3a5a40] text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                <button onclick="cambiarEstado('${pedido.id}', 'preparado')" class="w-full bg-[#588157] hover:bg-[#3a5a40] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
                     <i class="fas fa-cocktail"></i>
                     <span>Empezar Preparación</span>
                 </button>
@@ -82,7 +82,7 @@ function renderizarPedidos() {
             badgeColor = 'text-yellow-500';
             statusLabel = 'Preparando';
             actionBtn = `
-                <button onclick="cambiarEstado('${pedido.id}', 'servido')" class="w-full bg-[#a3b18a] hover:bg-[#588157] text-white font-black py-4 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                <button onclick="cambiarEstado('${pedido.id}', 'servido')" class="w-full bg-[#a3b18a] hover:bg-[#588157] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
                     <i class="fas fa-check-double"></i>
                     <span>Listo para Servir</span>
                 </button>

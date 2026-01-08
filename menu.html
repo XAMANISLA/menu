@@ -42,19 +42,21 @@
 
 <body class="bg-gray-50 pb-24">
     <!-- Header -->
-    <header class="bg-white sticky top-0 z-30 shadow-sm px-4 py-4 flex items-center justify-between">
+    <header
+        class="bg-white/95 backdrop-blur-md sticky top-0 z-30 border-b border-gray-100 px-4 py-4 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10">
+            <div class="w-8 h-8 sm:w-10 sm:h-10">
                 <img src="assets/logo.png" alt="Logo" class="w-full h-full object-contain">
             </div>
             <div>
-                <h1 class="text-lg font-bold text-gray-800 leading-tight">Devtrendmx</h1>
-                <p id="label-mesa" class="text-xs text-gray-500">Mesa: --</p>
+                <h1 class="text-sm sm:text-lg font-bold text-gray-800 leading-tight">Devtrendmx</h1>
+                <p id="label-mesa" class="text-[10px] sm:text-xs text-gray-500 uppercase tracking-widest font-bold">
+                    Mesa: --</p>
             </div>
         </div>
         <button id="btn-cart"
-            class="relative bg-white shadow-sm p-3 rounded-full text-gray-600 hover:bg-[#588157]/10 hover:text-[#588157] transition-colors border border-gray-100">
-            <i class="fas fa-shopping-basket text-xl"></i>
+            class="relative bg-white shadow-sm p-2.5 sm:p-3 rounded-full text-gray-600 hover:bg-[#588157]/10 hover:text-[#588157] transition-all border border-gray-100 active:scale-90">
+            <i class="fas fa-shopping-basket text-lg sm:text-xl"></i>
             <span id="cart-count"
                 class="absolute -top-1 -right-1 bg-[#588157] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">0</span>
         </button>
@@ -67,14 +69,19 @@
                 <i class="fas fa-search text-gray-400 group-focus-within:text-[#588157] transition-colors"></i>
             </div>
             <input type="text" id="search-input" placeholder="Buscar platillo o bebida..."
-                class="w-full bg-white border border-gray-100 py-4 pl-12 pr-4 rounded-2xl shadow-sm focus:ring-2 focus:ring-[#588157]/20 focus:border-[#588157] outline-none transition-all placeholder:text-gray-400 font-medium">
+                class="w-full bg-white border border-gray-100 py-3.5 sm:py-4 pl-11 sm:pl-12 pr-4 rounded-2xl shadow-sm focus:ring-4 focus:ring-[#588157]/10 focus:border-[#588157] outline-none transition-all placeholder:text-gray-400 font-medium text-sm sm:text-base">
         </div>
     </div>
 
     <!-- Categories -->
-    <div id="categories-container"
-        class="sticky top-[72px] z-20 bg-gray-50/80 backdrop-blur-md px-4 py-4 flex gap-3 overflow-x-auto no-scrollbar scroll-smooth">
-        <!-- Pills populated by JS -->
+    <div class="relative w-full">
+        <div id="categories-container"
+            class="sticky top-[72px] sm:top-[88px] z-20 bg-gray-50/80 backdrop-blur-md px-4 py-4 flex gap-2 sm:gap-3 overflow-x-auto no-scrollbar scroll-smooth">
+            <!-- Pills populated by JS -->
+        </div>
+        <div
+            class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none z-30">
+        </div>
     </div>
 
     <!-- Menu Grid -->
