@@ -260,6 +260,7 @@ async function cobrarCuenta(mesaId, pedidoIds) {
         cargarDatos();
     } catch (error) {
         console.error('Error al cobrar:', error);
+        alert('Hubo un error al procesar el pago. Por favor, intenta de nuevo.');
     }
 }
 
