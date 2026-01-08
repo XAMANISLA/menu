@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido | Sistema de Pedidos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #f8f9f4;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-sage {
+            background: #588157;
+            box-shadow: 0 10px 20px -5px rgba(88, 129, 87, 0.3);
+        }
+
+        .btn-sage:hover {
+            background: #3a5a40;
+            transform: translateY(-2px);
+        }
+
+        .text-sage {
+            color: #3a5a40;
+        }
+
+        .bg-sage {
+            background: #588157;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gray-50 min-h-screen flex items-center justify-center p-4 bg-[url('https://images.unsplash.com/photo-1542332213-31f87348057f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center">
+    <div class="absolute inset-0 bg-white/30 backdrop-blur-[1px]"></div>
+
+    <div class="glass relative z-10 w-full max-w-md p-8 rounded-[3rem] shadow-2xl animate-fade-in-up">
+        <div class="text-center mb-10">
+            <div class="w-24 h-24 mx-auto mb-6 transition-transform hover:scale-105 duration-500">
+                <img src="assets/logo.png" alt="Logo" class="w-full h-full object-contain filter drop-shadow-md">
+            </div>
+            <h1 class="text-4xl font-black text-sage tracking-tight">Bienvenido</h1>
+            <p class="text-gray-500 mt-3 font-medium">Vive una experiencia culinaria <span
+                    class="text-[#588157] font-bold">consciente</span>.</p>
+        </div>
+
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label for="mesa"
+                    class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 ml-2">Asignación de
+                    Mesa</label>
+                <div class="relative group">
+                    <span
+                        class="absolute inset-y-0 left-0 pl-5 flex items-center text-gray-400 group-focus-within:text-[#588157] transition-colors">
+                        <i class="fas fa-hashtag"></i>
+                    </span>
+                    <input type="number" id="mesa" name="mesa" required min="1" max="99"
+                        class="block w-full pl-12 pr-4 py-5 bg-white border border-gray-100 rounded-[2rem] text-gray-900 focus:ring-4 focus:ring-[#588157]/10 focus:border-[#588157] transition-all outline-none text-xl font-black"
+                        placeholder="Ej: 5">
+                </div>
+            </div>
+
+            <button type="submit"
+                class="w-full btn-sage text-white font-black py-5 rounded-[2rem] transition-all transform active:scale-95 flex items-center justify-center gap-3 text-lg">
+                <span>Explorar Carta</span>
+                <i class="fas fa-leaf animate-pulse"></i>
+            </button>
+        </form>
+
+        <div
+            class="mt-10 pt-8 border-t border-gray-100/50 flex justify-between items-center text-[10px] font-bold text-gray-400 tracking-widest uppercase">
+            <span>By DevtrendMX</span>
+            <div class="flex gap-4">
+                <a href="cocina.html" class="hover:text-[#588157] transition-colors">Cocina</a>
+                <a href="barra.html"
+                    class="hover:text-[#588157] transition-colors border-l pl-4 border-gray-200">Barra</a>
+                <a href="caja.html"
+                    class="hover:text-[#588157] transition-colors border-l pl-4 border-gray-200">Caja</a>
+                <a href="#" onclick="loginAdmin(event)"
+                    class="hover:text-[#588157] transition-colors opacity-60 ml-4">Admin</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const mesa = document.getElementById('mesa').value;
+            if (mesa) {
+                localStorage.setItem('mesa_actual', mesa);
+                window.location.href = 'menu.html';
+            }
+        });
+
+        function loginAdmin(e) {
+            e.preventDefault();
+            const pass = prompt("Ingrese la contraseña de administrador:");
+            if (pass === "Admin25") {
+                sessionStorage.setItem('admin_auth', 'true');
+                window.location.href = 'admin_menu.html';
+            } else if (pass !== null) {
+                alert("Contraseña incorrecta");
+            }
+        }
+    </script>
+</body>
+
+</html>
