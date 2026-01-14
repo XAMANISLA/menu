@@ -1,5 +1,6 @@
 // Estado global
 let ordersRange = 'today';
+let salesChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     cargarReportes();
@@ -47,10 +48,11 @@ async function cargarReportes() {
             hoy.setHours(0, 0, 0, 0);
             query = query.gte('created_at', hoy.toISOString());
         } else if (ordersRange === 'week') {
-            // Lunes a Viernes de esta semana
+            // Obtener el lunes de la semana actual
             const hoy = new Date();
             const day = hoy.getDay();
-            const diff = hoy.getDate() - day + (day === 0 ? -6 : 1);
+            // Si es domingo (0), queremos el lunes pasado (-6). Si es lunes (1), se queda igual (0).
+            const diff = hoy.getDate() - (day === 0 ? 6 : day - 1);
             const lunes = new Date(hoy.setDate(diff));
             lunes.setHours(0, 0, 0, 0);
             query = query.gte('created_at', lunes.toISOString());
@@ -68,6 +70,7 @@ async function cargarReportes() {
         renderizarTiempos(pedidosVisibles);
         renderizarPopularidad(pedidosVisibles);
         renderizarVentasDiarias(pedidos);
+        renderizarGraficaVentas(pedidos);
     } catch (error) {
         console.error('Error al cargar reportes:', error);
     }
@@ -84,8 +87,10 @@ function renderizarVentasDiarias(pedidos) {
     pedidos.forEach(p => {
         const fecha = new Date(p.created_at);
         const dia = fecha.getDay();
+        // Sumamos solo si es de Lunes (1) a Viernes (5)
         if (dia >= 1 && dia <= 5) {
-            ventasPorDia[dia] += (p.total || 0);
+            const totalPedido = parseFloat(p.total) || 0;
+            ventasPorDia[dia] += totalPedido;
         }
     });
 
@@ -98,6 +103,95 @@ function renderizarVentasDiarias(pedidos) {
             <span class="text-xl font-black text-[#3a5a40] tracking-tighter text-lg">$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
         `;
         container.appendChild(card);
+    });
+}
+
+function renderizarGraficaVentas(pedidos) {
+    const ctx = document.getElementById('salesTrendChart');
+    if (!ctx) return;
+
+    const diasNombres = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+    const ventasPorDia = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+    pedidos.forEach(p => {
+        const fecha = new Date(p.created_at);
+        const dia = fecha.getDay();
+        if (dia >= 1 && dia <= 5) {
+            ventasPorDia[dia] += parseFloat(p.total) || 0;
+        }
+    });
+
+    const data = [ventasPorDia[1], ventasPorDia[2], ventasPorDia[3], ventasPorDia[4], ventasPorDia[5]];
+
+    if (salesChart) {
+        salesChart.destroy();
+    }
+
+    salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: diasNombres,
+            datasets: [{
+                label: 'Ventas Diarias ($)',
+                data: data,
+                borderColor: '#588157',
+                backgroundColor: 'rgba(88, 129, 87, 0.1)',
+                borderWidth: 4,
+                pointBackgroundColor: '#3a5a40',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#3a5a40',
+                    titleFont: { size: 12, weight: 'bold' },
+                    bodyFont: { size: 14, weight: 'bold' },
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: function (context) {
+                            return '$' + context.parsed.y.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: true,
+                        color: 'rgba(0,0,0,0.03)'
+                    },
+                    ticks: {
+                        font: { size: 10, weight: 'bold' },
+                        color: '#9ca3af',
+                        callback: function (value) {
+                            return '$' + value;
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: { size: 10, weight: 'bold' },
+                        color: '#3a5a40'
+                    }
+                }
+            }
+        }
     });
 }
 
