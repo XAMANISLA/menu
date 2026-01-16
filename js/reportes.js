@@ -89,7 +89,7 @@ function renderizarVentasDiarias(pedidos) {
         const dia = fecha.getDay();
         // Sumamos solo si es de Lunes (1) a Viernes (5)
         if (dia >= 1 && dia <= 5) {
-            const totalPedido = parseFloat(p.total) || 0;
+            const totalPedido = (parseFloat(p.total) || 0) + (parseFloat(p.propina) || 0) - (parseFloat(p.descuento) || 0);
             ventasPorDia[dia] += totalPedido;
         }
     });
@@ -117,7 +117,7 @@ function renderizarGraficaVentas(pedidos) {
         const fecha = new Date(p.created_at);
         const dia = fecha.getDay();
         if (dia >= 1 && dia <= 5) {
-            ventasPorDia[dia] += parseFloat(p.total) || 0;
+            ventasPorDia[dia] += (parseFloat(p.total) || 0) + (parseFloat(p.propina) || 0) - (parseFloat(p.descuento) || 0);
         }
     });
 

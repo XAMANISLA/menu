@@ -61,21 +61,24 @@ async function calcularVentasHoy() {
     hoy.setHours(0, 0, 0, 0);
     const { data, error } = await window.supabase
         .from('pedidos')
-        .select('total, metodo_pago')
+        .select('total, metodo_pago, propina, descuento')
         .eq('estado', 'pagado')
         .gte('created_at', hoy.toISOString());
 
     if (!error && data) {
-        const totalEfectivo = data.filter(p => p.metodo_pago === 'efectivo').reduce((acc, p) => acc + (p.total || 0), 0);
-        const totalTarjeta = data.filter(p => p.metodo_pago === 'tarjeta').reduce((acc, p) => acc + (p.total || 0), 0);
-        const totalGral = totalEfectivo + totalTarjeta;
+        const totalPropinas = data.reduce((acc, p) => acc + (parseFloat(p.propina) || 0), 0);
+        const totalGral = data.reduce((acc, p) => acc + (parseFloat(p.total) || 0) + (parseFloat(p.propina) || 0) - (parseFloat(p.descuento) || 0), 0);
+        const totalEfectivo = data.filter(p => p.metodo_pago === 'efectivo').reduce((acc, p) => acc + (parseFloat(p.total) || 0) + (parseFloat(p.propina) || 0) - (parseFloat(p.descuento) || 0), 0);
+        const totalTarjeta = data.filter(p => p.metodo_pago === 'tarjeta').reduce((acc, p) => acc + (parseFloat(p.total) || 0) + (parseFloat(p.propina) || 0) - (parseFloat(p.descuento) || 0), 0);
 
         const elEfectivo = document.getElementById('total-efectivo');
         const elTarjeta = document.getElementById('total-tarjeta');
+        const elPropinas = document.getElementById('total-propinas');
         const elTotal = document.getElementById('ventas-total');
 
         if (elEfectivo) elEfectivo.innerText = `$${totalEfectivo.toFixed(2)}`;
         if (elTarjeta) elTarjeta.innerText = `$${totalTarjeta.toFixed(2)}`;
+        if (elPropinas) elPropinas.innerText = `$${totalPropinas.toFixed(2)}`;
         if (elTotal) elTotal.innerText = `$${totalGral.toFixed(2)}`;
     }
 }
@@ -113,6 +116,22 @@ async function verDetalleMesa(mesa) {
     mesaSeleccionada = mesa;
     modalTitle.innerText = (mesa.nombre || `Mesa ${mesa.numero}`).toUpperCase();
     cuentaItems.innerHTML = '<div class="flex justify-center p-10"><i class="fas fa-circle-notch animate-spin text-4xl text-[#588157]"></i></div>';
+
+    // Resetear estado inmediatamente para evitar "efecto fantasma"
+    subtotalActual = 0;
+    descuentoActual = 0;
+    porcentajeActual = 0;
+    propinaActual = 0;
+    metodoSeleccionado = null;
+
+    if (modalSubtotal) modalSubtotal.innerText = '$0.00';
+    if (modalTotal) modalTotal.innerText = '$0.00';
+    actualizarUITotales();
+    actualizarUIBotonesDescuento();
+    actualizarUIBotonesPago();
+
+    const inputPropina = document.getElementById('input-propina');
+    if (inputPropina) inputPropina.value = '';
 
     // Abrir modal
     modalCuenta.classList.remove('invisible', 'opacity-0');
@@ -160,17 +179,8 @@ async function verDetalleMesa(mesa) {
         });
 
         if (modalSubtotal) modalSubtotal.innerText = `$${total.toFixed(2)}`;
-
         subtotalActual = total;
-        aplicarDescuento(0); // Reset a sin descuento
-
-        propinaActual = 0; // Reset propina
-        const inputPropina = document.getElementById('input-propina');
-        if (inputPropina) inputPropina.value = '';
-
-        // Reset payment selection
-        metodoSeleccionado = null;
-        actualizarUIBotonesPago();
+        aplicarDescuento(0);
 
         if (btnCobrar) {
             btnCobrar.onclick = () => cobrarCuenta(mesa.id, data.map(p => p.id));
@@ -239,17 +249,24 @@ async function cobrarCuenta(mesaId, pedidoIds) {
     if (!confirm(`¿Confirmar pago de ${totalFinal} en ${metodoSeleccionado.toUpperCase()} y liberar mesa?`)) return;
 
     try {
-        // 1. Marcar pedidos como pagados y registrar método y propina
-        const { error: errorPedidos } = await window.supabase
-            .from('pedidos')
-            .update({
-                estado: 'pagado',
-                metodo_pago: metodoSeleccionado,
-                propina: propinaActual
-            })
-            .in('id', pedidoIds);
+        // Ejecutar las actualizaciones de todos los pedidos
+        const updates = pedidoIds.map((id, index) => {
+            const isFirst = index === 0;
+            return window.supabase
+                .from('pedidos')
+                .update({
+                    estado: 'pagado',
+                    metodo_pago: metodoSeleccionado,
+                    // Solo aplicamos propina y descuento al primer pedido del grupo para evitar duplicados en reportes
+                    propina: isFirst ? propinaActual : 0,
+                    descuento: isFirst ? descuentoActual : 0
+                })
+                .eq('id', id);
+        });
 
-        if (errorPedidos) throw errorPedidos;
+        const results = await Promise.all(updates);
+        const error = results.find(r => r.error);
+        if (error) throw error.error;
 
         // 2. Cerrar mesa
         const { error: errorMesa } = await window.supabase
