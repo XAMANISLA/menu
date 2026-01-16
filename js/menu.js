@@ -271,7 +271,12 @@ async function enviarPedido() {
         const total = carrito.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
         const { data: pedido, error: pedidoError } = await window.supabase
             .from('pedidos')
-            .insert({ mesa_id: mesaData.id, total: total })
+            .insert({
+                mesa_id: mesaData.id,
+                total: total,
+                estado_cocina: 'enviado',
+                estado_barra: 'enviado'
+            })
             .select()
             .single();
 

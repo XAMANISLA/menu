@@ -25,7 +25,7 @@ async function cargarPedidos() {
                     productos(nombre, categoria)
                 )
             `)
-            .in('estado', ['enviado', 'preparado'])
+            .in('estado_cocina', ['enviado', 'preparado'])
             .order('created_at', { ascending: true });
 
         if (error) throw error;
@@ -60,7 +60,7 @@ function renderizarPedidos() {
 
     pedidosFiltrados.forEach(pedido => {
         const timeAgo = Math.floor((new Date() - new Date(pedido.created_at)) / 60000);
-        const isNew = timeAgo < 1 && pedido.estado === 'enviado';
+        const isNew = timeAgo < 1 && pedido.estado_cocina === 'enviado';
 
         const card = document.createElement('div');
         card.className = `order-card p-6 shadow-xl border-l-[10px] transform hover:scale-[1.02] ${isNew ? 'new-order border-[#588157]' : 'border-gray-200'}`;
@@ -70,7 +70,7 @@ function renderizarPedidos() {
         let badgeColor = '';
         let statusLabel = '';
 
-        if (pedido.estado === 'enviado') {
+        if (pedido.estado_cocina === 'enviado') {
             const date = new Date(pedido.created_at);
             const hours = String(date.getHours()).padStart(2, '0');
             const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -133,10 +133,7 @@ function renderizarPedidos() {
 
 async function cambiarEstado(pedidoId, nuevoEstado) {
     try {
-        const updateData = { estado: nuevoEstado };
-        if (nuevoEstado === 'servido') {
-            updateData.finished_at = new Date().toISOString();
-        }
+        const updateData = { estado_cocina: nuevoEstado };
 
         const { error } = await window.supabase
             .from('pedidos')
@@ -145,10 +142,45 @@ async function cambiarEstado(pedidoId, nuevoEstado) {
 
         if (error) throw error;
 
-        showToast(`Pedido marcado como ${nuevoEstado}`);
+        // Comprobar si el pedido global ya puede pasar a 'servido'
+        if (nuevoEstado === 'servido') {
+            await actualizarEstadoGlobal(pedidoId);
+        }
+
+        showToast(`Platillos marcados como ${nuevoEstado}`);
         // El refresco sucederá por la suscripción realtime
     } catch (error) {
         console.error('Error al cambiar estado:', error);
+    }
+}
+
+async function actualizarEstadoGlobal(pedidoId) {
+    try {
+        // Obtenemos el pedido completo con sus detalles
+        const { data: pedido, error } = await window.supabase
+            .from('pedidos')
+            .select('*, pedido_detalle(*, productos(categoria))')
+            .eq('id', pedidoId)
+            .single();
+
+        if (error) throw error;
+
+        const itemsBar = pedido.pedido_detalle.some(d => d.productos.categoria === 'Bar');
+        const cocinaServida = pedido.estado_cocina === 'servido';
+        const barraServida = pedido.estado_barra === 'servido';
+
+        // Si la cocina ya terminó y (no hay bar o el bar ya terminó)
+        if (cocinaServida && (!itemsBar || barraServida)) {
+            await window.supabase
+                .from('pedidos')
+                .update({
+                    estado: 'servido',
+                    finished_at: new Date().toISOString()
+                })
+                .eq('id', pedidoId);
+        }
+    } catch (error) {
+        console.error('Error al actualizar estado global:', error);
     }
 }
 
