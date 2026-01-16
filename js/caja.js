@@ -144,6 +144,7 @@ async function verDetalleMesa(mesa) {
                 id,
                 total,
                 pedido_detalle(
+                    id,
                     cantidad,
                     subtotal,
                     productos(nombre)
@@ -169,7 +170,12 @@ async function verDetalleMesa(mesa) {
                     itemDiv.innerHTML = `
                         <div class="flex items-center gap-4">
                             <span class="bg-[#588157]/10 text-[#588157] text-xs font-black px-3 py-1.5 rounded-xl border border-[#588157]/10">${det.cantidad}x</span>
-                            <span class="text-gray-700 font-bold">${nombreProd}</span>
+                            <div class="flex flex-col">
+                                <span class="text-gray-700 font-bold">${nombreProd}</span>
+                                <button onclick="eliminarItemCaja('${det.id}', '${pedido.id}', ${det.subtotal})" class="text-red-400 text-[10px] hover:text-red-600 transition-colors flex items-center gap-1 mt-1 font-bold italic">
+                                    <i class="fas fa-trash-alt"></i> Eliminar
+                                </button>
+                            </div>
                         </div>
                         <span class="text-[#3a5a40] font-black">$${(det.subtotal || 0).toFixed(2)}</span>
                     `;
@@ -434,4 +440,87 @@ function showToast(msg) {
     setTimeout(() => {
         toast.classList.add('opacity-0', 'translate-y-10');
     }, 3000);
+}
+
+async function eliminarItemCaja(detalleId, pedidoId, subtotal) {
+    const password = prompt('Para eliminar este producto, ingresa la contraseña de administrador:');
+    if (password !== 'Admin25!') {
+        if (password !== null) alert('Contraseña incorrecta');
+        return;
+    }
+
+    try {
+        // 1. Eliminar el item del detalle
+        const { error: errorDetalle } = await window.supabase
+            .from('pedido_detalle')
+            .delete()
+            .eq('id', detalleId);
+
+        if (errorDetalle) throw errorDetalle;
+
+        // 2. Verificar cuántos items quedan en el pedido
+        const { data: itemsRestantes, error: errorConteo } = await window.supabase
+            .from('pedido_detalle')
+            .select('id')
+            .eq('pedido_id', pedidoId);
+
+        if (errorConteo) throw errorConteo;
+
+        if (itemsRestantes.length === 0) {
+            // 3a. Si no quedan items, eliminar el pedido
+            const { error: errorPedido } = await window.supabase
+                .from('pedidos')
+                .delete()
+                .eq('id', pedidoId);
+
+            if (errorPedido) throw errorPedido;
+        } else {
+            // 3b. Si quedan items, actualizar el total del pedido
+            const { data: pedidoActual, error: errorPedidoInfo } = await window.supabase
+                .from('pedidos')
+                .select('total')
+                .eq('id', pedidoId)
+                .single();
+
+            if (errorPedidoInfo) throw errorPedidoInfo;
+
+            const nuevoTotal = Math.max(0, (parseFloat(pedidoActual.total) || 0) - (parseFloat(subtotal) || 0));
+
+            const { error: errorUpdate } = await window.supabase
+                .from('pedidos')
+                .update({ total: nuevoTotal })
+                .eq('id', pedidoId);
+
+            if (errorUpdate) throw errorUpdate;
+        }
+
+        // 4. Verificar si quedan pedidos activos para la mesa
+        const { data: pedidosRestantes, error: errorMesa } = await window.supabase
+            .from('pedidos')
+            .select('id')
+            .eq('mesa_id', mesaSeleccionada.id)
+            .neq('estado', 'pagado');
+
+        if (errorMesa) throw errorMesa;
+
+        if (pedidosRestantes.length === 0) {
+            // Si ya no hay pedidos, cerramos la mesa
+            await window.supabase
+                .from('mesas')
+                .update({ estado: 'cerrada' })
+                .eq('id', mesaSeleccionada.id);
+
+            showToast('Producto eliminado y mesa liberada');
+            closeModal();
+        } else {
+            showToast('Producto eliminado');
+            // Refrescar el detalle del modal
+            verDetalleMesa(mesaSeleccionada);
+        }
+
+        cargarDatos();
+    } catch (error) {
+        console.error('Error al eliminar item:', error);
+        alert('Hubo un error al eliminar el producto.');
+    }
 }
