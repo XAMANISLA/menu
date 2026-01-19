@@ -246,7 +246,7 @@ async function enviarPedido() {
 
     try {
         // 1. Obtener ID de la mesa
-        const { data: mesaData, error: mesaError } = await window.supabase
+        let { data: mesaData, error: mesaError } = await window.supabase
             .from('mesas')
             .select('id')
             .eq('numero', mesaActual)

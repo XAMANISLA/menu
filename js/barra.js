@@ -93,7 +93,7 @@ function renderizarPedidos() {
             <div class="flex items-start gap-3 py-4 border-b border-gray-100 last:border-0">
                 <div class="bg-[#3a5a40] text-white font-black px-2.5 py-1 rounded-lg text-xs">${d.cantidad}x</div>
                 <div class="flex-1">
-                    <p class="font-bold text-gray-800">${d.productos.nombre}</p>
+                    <p class="font-bold text-gray-800">${d.productos ? (Array.isArray(d.productos) ? d.productos[0].nombre : d.productos.nombre) : 'Producto'}</p>
                     ${d.observaciones ? `<p class="text-[11px] text-[#588157] italic font-semibold mt-1.5 flex items-center gap-1.5"><i class="fas fa-comment-dots opacity-50"></i>${d.observaciones}</p>` : ''}
                 </div>
             </div>
@@ -186,6 +186,10 @@ function suscribirACambios() {
                 }
             }
 
+            cargarPedidos();
+        })
+        .on('postgres_changes', { event: '*', table: 'pedido_detalle' }, payload => {
+            console.log('Cambio recibido en detalles (Barra):', payload);
             cargarPedidos();
         })
         .subscribe();

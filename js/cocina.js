@@ -97,7 +97,7 @@ function renderizarPedidos() {
             <div class="flex items-start gap-3 py-4 border-b border-gray-100 last:border-0 relative group">
                 <div class="bg-[#588157] text-white font-black px-2.5 py-1 rounded-lg text-xs">${d.cantidad}x</div>
                 <div class="flex-1">
-                    <p class="font-bold text-[#3a5a40]">${d.productos.nombre}</p>
+                    <p class="font-bold text-[#3a5a40]">${d.productos ? (Array.isArray(d.productos) ? d.productos[0].nombre : d.productos.nombre) : 'Producto'}</p>
                     ${d.observaciones ? `<p class="text-[11px] text-[#a3b18a] italic font-semibold mt-1.5 flex items-center gap-1.5"><i class="fas fa-comment-dots opacity-50"></i>${d.observaciones}</p>` : ''}
                 </div>
                 ${pedido.estado === 'enviado' ? `
@@ -243,7 +243,7 @@ async function eliminarItemPedido(detalleId, pedidoId, subtotal) {
 }
 
 function suscribirACambios() {
-    // Escuchar cambios en la tabla 'pedidos'
+    // Escuchar cambios en la tabla 'pedidos' y 'pedido_detalle'
     window.supabase
         .channel('cocina-cambios')
         .on('postgres_changes', { event: '*', table: 'pedidos' }, payload => {
@@ -258,6 +258,10 @@ function suscribirACambios() {
             }
 
             cargarPedidos(); // Recargar todo para simplificar consistencia
+        })
+        .on('postgres_changes', { event: '*', table: 'pedido_detalle' }, payload => {
+            console.log('Cambio recibido en detalles:', payload);
+            cargarPedidos();
         })
         .subscribe();
 }
