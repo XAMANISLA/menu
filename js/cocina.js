@@ -19,7 +19,7 @@ async function cargarPedidos() {
             .from('pedidos')
             .select(`
                 *,
-                mesas(numero, nombre),
+                mesas:mesa_id(*),
                 pedido_detalle(
                     *,
                     productos(nombre, categoria)
@@ -30,7 +30,8 @@ async function cargarPedidos() {
 
         if (error) throw error;
 
-        pedidosPendientes = data;
+        console.log('Pedidos cargados (Cocina):', data); // Diagnóstico
+        pedidosPendientes = data || [];
         renderizarPedidos();
     } catch (error) {
         console.error('Error al cargar pedidos:', error);
@@ -42,7 +43,14 @@ function renderizarPedidos() {
 
     // Filtrar pedidos que tienen al menos un producto que no es de la categoría 'Bar'
     const pedidosFiltrados = pedidosPendientes.map(pedido => {
-        const itemsCocina = pedido.pedido_detalle.filter(d => d.productos.categoria !== 'Bar');
+        if (!pedido.pedido_detalle) return null;
+
+        const itemsCocina = pedido.pedido_detalle.filter(d => {
+            const prod = d.productos;
+            const categoria = prod ? (Array.isArray(prod) ? prod[0]?.categoria : prod.categoria) : '';
+            return categoria && categoria.toLowerCase() !== 'bar';
+        });
+
         if (itemsCocina.length > 0) {
             return { ...pedido, pedido_detalle: itemsCocina };
         }
@@ -59,75 +67,88 @@ function renderizarPedidos() {
     }
 
     pedidosFiltrados.forEach(pedido => {
-        const timeAgo = Math.floor((new Date() - new Date(pedido.created_at)) / 60000);
-        const isNew = timeAgo < 1 && pedido.estado_cocina === 'enviado';
+        try {
+            const timeAgo = Math.floor((new Date() - new Date(pedido.created_at)) / 60000);
+            const isNew = timeAgo < 1 && pedido.estado_cocina === 'enviado';
 
-        const card = document.createElement('div');
-        card.className = `order-card p-6 shadow-xl border-l-[10px] transform hover:scale-[1.02] ${isNew ? 'new-order border-[#588157]' : 'border-gray-200'}`;
+            // Datos de mesa robustos
+            const finalMesa = pedido.mesas ? (Array.isArray(pedido.mesas) ? pedido.mesas[0] : pedido.mesas) : null;
+            const mesaNombre = finalMesa ? (finalMesa.nombre || `Mesa ${finalMesa.numero}`) : `Mesa ${pedido.mesa_id?.substring(0, 4) || '?'}`;
+            const mesaID = finalMesa ? finalMesa.numero : '';
 
-        let statusBadge = '';
-        let actionBtn = '';
-        let badgeColor = '';
-        let statusLabel = '';
+            const card = document.createElement('div');
+            card.className = `order-card p-6 shadow-xl border-l-[10px] transform hover:scale-[1.02] ${isNew ? 'new-order border-[#588157]' : 'border-gray-200'}`;
 
-        if (pedido.estado_cocina === 'enviado') {
-            const date = new Date(pedido.created_at);
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            badgeColor = 'text-[#a3b18a]';
-            statusLabel = `Recibido ${hours} : ${minutes}`;
-            actionBtn = `
-                <button onclick="cambiarEstado('${pedido.id}', 'preparado')" class="w-full bg-[#588157] hover:bg-[#3a5a40] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-                    <i class="fas fa-play"></i>
-                    <span>Empezar Preparación</span>
-                </button>
+            let statusBadge = '';
+            let actionBtn = '';
+            let badgeColor = '';
+            let statusLabel = '';
+
+            if (pedido.estado_cocina === 'enviado') {
+                const date = new Date(pedido.created_at);
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                badgeColor = 'text-[#a3b18a]';
+                statusLabel = `Recibido ${hours} : ${minutes}`;
+                actionBtn = `
+                    <button onclick="cambiarEstado('${pedido.id}', 'preparado')" class="w-full bg-[#588157] hover:bg-[#3a5a40] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                        <i class="fas fa-play"></i>
+                        <span>Empezar Preparación</span>
+                    </button>
+                `;
+            } else { // pedido.estado === 'preparado'
+                badgeColor = 'text-yellow-500';
+                statusLabel = 'Preparando';
+                actionBtn = `
+                    <button onclick="cambiarEstado('${pedido.id}', 'servido')" class="w-full bg-[#a3b18a] hover:bg-[#588157] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                        <i class="fas fa-check-double"></i>
+                        <span>Listo para Servir</span>
+                    </button>
+                `;
+            }
+
+            const itemsHtml = pedido.pedido_detalle.map(d => {
+                const prod = d.productos;
+                const prodNombre = prod ? (Array.isArray(prod) ? prod[0]?.nombre : prod.nombre) : 'Producto';
+
+                return `
+                <div class="flex items-start gap-3 py-4 border-b border-gray-100 last:border-0 relative group">
+                    <div class="bg-[#588157] text-white font-black px-2.5 py-1 rounded-lg text-xs">${d.cantidad}x</div>
+                    <div class="flex-1">
+                        <p class="font-bold text-[#3a5a40]">${prodNombre}</p>
+                        ${d.observaciones ? `<p class="text-[11px] text-[#a3b18a] italic font-semibold mt-1.5 flex items-center gap-1.5"><i class="fas fa-comment-dots opacity-50"></i>${d.observaciones}</p>` : ''}
+                    </div>
+                    ${pedido.estado === 'enviado' ? `
+                    <button onclick="eliminarItemPedido('${d.id}', '${pedido.id}', ${d.subtotal})" class="bg-red-50 text-red-500 hover:bg-red-100 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100" title="Eliminar producto">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                    ` : ''}
+                </div>
+            `}).join('');
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Mesa / Espacio</span>
+                        <h3 class="text-3xl font-black text-[#3a5a40] tracking-tighter">${mesaNombre}</h3>
+                        ${mesaID && mesaID !== mesaNombre ? `<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID: ${mesaID}</span>` : ''}
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Status</span>
+                        <span class="${badgeColor} text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-current bg-opacity-10">${statusLabel}</span>
+                    </div>
+                </div>
+                <div class="flex-1 p-6 space-y-1">
+                    ${itemsHtml}
+                </div>
+                <div class="mt-auto flex flex-col gap-3">
+                    ${actionBtn}
+                </div>
             `;
-        } else { // pedido.estado === 'preparado'
-            badgeColor = 'text-yellow-500';
-            statusLabel = 'Preparando';
-            actionBtn = `
-                <button onclick="cambiarEstado('${pedido.id}', 'servido')" class="w-full bg-[#a3b18a] hover:bg-[#588157] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-                    <i class="fas fa-check-double"></i>
-                    <span>Listo para Servir</span>
-                </button>
-            `;
+            ordersContainer.appendChild(card);
+        } catch (e) {
+            console.error('Error renderizando pedido:', pedido.id, e);
         }
-
-        const itemsHtml = pedido.pedido_detalle.map(d => `
-            <div class="flex items-start gap-3 py-4 border-b border-gray-100 last:border-0 relative group">
-                <div class="bg-[#588157] text-white font-black px-2.5 py-1 rounded-lg text-xs">${d.cantidad}x</div>
-                <div class="flex-1">
-                    <p class="font-bold text-[#3a5a40]">${d.productos ? (Array.isArray(d.productos) ? d.productos[0].nombre : d.productos.nombre) : 'Producto'}</p>
-                    ${d.observaciones ? `<p class="text-[11px] text-[#a3b18a] italic font-semibold mt-1.5 flex items-center gap-1.5"><i class="fas fa-comment-dots opacity-50"></i>${d.observaciones}</p>` : ''}
-                </div>
-                ${pedido.estado === 'enviado' ? `
-                <button onclick="eliminarItemPedido('${d.id}', '${pedido.id}', ${d.subtotal})" class="bg-red-50 text-red-500 hover:bg-red-100 p-2 rounded-lg transition-all opacity-0 group-hover:opacity-100" title="Eliminar producto">
-                    <i class="fas fa-trash-alt text-xs"></i>
-                </button>
-                ` : ''}
-            </div>
-        `).join('');
-
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Mesa / Espacio</span>
-                    <h3 class="text-3xl font-black text-[#3a5a40] tracking-tighter">${pedido.mesas.nombre || `Mesa ${pedido.mesas.numero}`}</h3>
-                    ${pedido.mesas.nombre ? `<span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID: ${pedido.mesas.numero}</span>` : ''}
-                </div>
-                <div class="text-right">
-                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Status</span>
-                    <span class="${badgeColor} text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-current bg-opacity-10">${statusLabel}</span>
-                </div>
-            </div>
-            <div class="flex-1 p-6 space-y-1">
-                ${itemsHtml}
-            </div>
-            <div class="mt-auto flex flex-col gap-3">
-                ${actionBtn}
-            </div>
-        `;
-        ordersContainer.appendChild(card);
     });
 }
 

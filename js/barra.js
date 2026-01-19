@@ -19,7 +19,7 @@ async function cargarPedidos() {
             .from('pedidos')
             .select(`
                 *,
-                mesas(numero),
+                mesas:mesa_id(numero),
                 pedido_detalle(
                     *,
                     productos(nombre, categoria)
@@ -30,7 +30,8 @@ async function cargarPedidos() {
 
         if (error) throw error;
 
-        pedidosPendientes = data;
+        console.log('Pedidos cargados (Barra):', data); // Diagnóstico
+        pedidosPendientes = data || [];
         renderizarPedidos();
     } catch (error) {
         console.error('Error al cargar pedidos:', error);
@@ -42,7 +43,14 @@ function renderizarPedidos() {
 
     // Filtrar pedidos que tienen al menos un producto de la categoría 'Bar'
     const pedidosFiltrados = pedidosPendientes.map(pedido => {
-        const itemsBar = pedido.pedido_detalle.filter(d => d.productos.categoria === 'Bar');
+        if (!pedido.pedido_detalle) return null;
+
+        const itemsBar = pedido.pedido_detalle.filter(d => {
+            const prod = d.productos;
+            const categoria = prod ? (Array.isArray(prod) ? prod[0]?.categoria : prod.categoria) : '';
+            return categoria && categoria.toLowerCase() === 'bar';
+        });
+
         if (itemsBar.length > 0) {
             return { ...pedido, pedido_detalle: itemsBar };
         }
@@ -59,65 +67,77 @@ function renderizarPedidos() {
     }
 
     pedidosFiltrados.forEach(pedido => {
-        const timeAgo = Math.floor((new Date() - new Date(pedido.created_at)) / 60000);
-        const isNew = timeAgo < 1 && pedido.estado_barra === 'enviado';
+        try {
+            const timeAgo = Math.floor((new Date() - new Date(pedido.created_at)) / 60000);
+            const isNew = timeAgo < 1 && pedido.estado_barra === 'enviado';
 
-        const card = document.createElement('div');
-        card.className = `order-card p-6 shadow-xl border-l-[10px] transform hover:scale-[1.02] ${isNew ? 'new-order border-[#588157]' : 'border-gray-200'}`;
+            // Datos de mesa robustos
+            const finalMesa = pedido.mesas ? (Array.isArray(pedido.mesas) ? pedido.mesas[0] : pedido.mesas) : null;
+            const mesaID = finalMesa ? finalMesa.numero : `ID: ${pedido.mesa_id?.substring(0, 4) || '?'}`;
 
-        let actionBtn = '';
-        let badgeColor = '';
-        let statusLabel = '';
+            const card = document.createElement('div');
+            card.className = `order-card p-6 shadow-xl border-l-[10px] transform hover:scale-[1.02] ${isNew ? 'new-order border-[#588157]' : 'border-gray-200'}`;
 
-        if (pedido.estado_barra === 'enviado') {
-            badgeColor = 'text-[#a3b18a]';
-            statusLabel = 'Recibido';
-            actionBtn = `
-                <button onclick="cambiarEstado('${pedido.id}', 'preparado')" class="w-full bg-[#588157] hover:bg-[#3a5a40] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-                    <i class="fas fa-cocktail"></i>
-                    <span>Empezar Preparación</span>
-                </button>
+            let actionBtn = '';
+            let badgeColor = '';
+            let statusLabel = '';
+
+            if (pedido.estado_barra === 'enviado') {
+                badgeColor = 'text-[#a3b18a]';
+                statusLabel = 'Recibido';
+                actionBtn = `
+                    <button onclick="cambiarEstado('${pedido.id}', 'preparado')" class="w-full bg-[#588157] hover:bg-[#3a5a40] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                        <i class="fas fa-cocktail"></i>
+                        <span>Empezar Preparación</span>
+                    </button>
+                `;
+            } else { // pedido.estado === 'preparado'
+                badgeColor = 'text-yellow-500';
+                statusLabel = 'Preparando';
+                actionBtn = `
+                    <button onclick="cambiarEstado('${pedido.id}', 'servido')" class="w-full bg-[#a3b18a] hover:bg-[#588157] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                        <i class="fas fa-check-double"></i>
+                        <span>Listo para Servir</span>
+                    </button>
+                `;
+            }
+
+            const itemsHtml = pedido.pedido_detalle.map(d => {
+                const prod = d.productos;
+                const prodNombre = prod ? (Array.isArray(prod) ? prod[0]?.nombre : prod.nombre) : 'Producto';
+
+                return `
+                <div class="flex items-start gap-3 py-4 border-b border-gray-100 last:border-0">
+                    <div class="bg-[#3a5a40] text-white font-black px-2.5 py-1 rounded-lg text-xs">${d.cantidad}x</div>
+                    <div class="flex-1">
+                        <p class="font-bold text-gray-800">${prodNombre}</p>
+                        ${d.observaciones ? `<p class="text-[11px] text-[#588157] italic font-semibold mt-1.5 flex items-center gap-1.5"><i class="fas fa-comment-dots opacity-50"></i>${d.observaciones}</p>` : ''}
+                    </div>
+                </div>
+            `}).join('');
+
+            card.innerHTML = `
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Mesa</span>
+                        <h3 class="text-4xl font-black text-[#3a5a40] tracking-tighter">${mesaID}</h3>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Status</span>
+                        <span class="${badgeColor} text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-current bg-opacity-10">${statusLabel}</span>
+                    </div>
+                </div>
+                <div class="flex-1 p-6 space-y-1">
+                    ${itemsHtml}
+                </div>
+                <div class="mt-auto flex flex-col gap-3">
+                    ${actionBtn}
+                </div>
             `;
-        } else { // pedido.estado === 'preparado'
-            badgeColor = 'text-yellow-500';
-            statusLabel = 'Preparando';
-            actionBtn = `
-                <button onclick="cambiarEstado('${pedido.id}', 'servido')" class="w-full bg-[#a3b18a] hover:bg-[#588157] text-white font-black py-5 rounded-2xl transition-all shadow-lg active:scale-95 uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-                    <i class="fas fa-check-double"></i>
-                    <span>Listo para Servir</span>
-                </button>
-            `;
+            ordersContainer.appendChild(card);
+        } catch (e) {
+            console.error('Error renderizando pedido Barra:', pedido.id, e);
         }
-
-        const itemsHtml = pedido.pedido_detalle.map(d => `
-            <div class="flex items-start gap-3 py-4 border-b border-gray-100 last:border-0">
-                <div class="bg-[#3a5a40] text-white font-black px-2.5 py-1 rounded-lg text-xs">${d.cantidad}x</div>
-                <div class="flex-1">
-                    <p class="font-bold text-gray-800">${d.productos ? (Array.isArray(d.productos) ? d.productos[0].nombre : d.productos.nombre) : 'Producto'}</p>
-                    ${d.observaciones ? `<p class="text-[11px] text-[#588157] italic font-semibold mt-1.5 flex items-center gap-1.5"><i class="fas fa-comment-dots opacity-50"></i>${d.observaciones}</p>` : ''}
-                </div>
-            </div>
-        `).join('');
-
-        card.innerHTML = `
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Mesa</span>
-                    <h3 class="text-4xl font-black text-[#3a5a40] tracking-tighter">${pedido.mesas.numero}</h3>
-                </div>
-                <div class="text-right">
-                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Status</span>
-                    <span class="${badgeColor} text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest border border-current bg-opacity-10">${statusLabel}</span>
-                </div>
-            </div>
-            <div class="flex-1 p-6 space-y-1">
-                ${itemsHtml}
-            </div>
-            <div class="mt-auto flex flex-col gap-3">
-                ${actionBtn}
-            </div>
-        `;
-        ordersContainer.appendChild(card);
     });
 }
 
