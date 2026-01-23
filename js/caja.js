@@ -327,23 +327,44 @@ function mostrarTicket() {
 
     // Items
     itemsList.innerHTML = '';
-    const items = cuentaItems.querySelectorAll('.py-4.border-b');
+    const items = cuentaItems.querySelectorAll('.flex.justify-between.items-center.py-4');
+
+    // Header opcional para claridad
+    const header = document.createElement('div');
+    header.className = "flex justify-between font-black text-[9px] border-b border-gray-100 pb-1 mb-2 uppercase";
+    header.innerHTML = `<span>Producto</span> <div class="flex gap-4"><span>P.Unico</span> <span>Total</span></div>`;
+    itemsList.appendChild(header);
+
     items.forEach(item => {
-        const qtySpan = item.querySelector('div.flex > span:first-child');
-        const nameSpan = item.querySelector('div.flex > span:nth-child(2)');
+        const qtySpan = item.querySelector('.bg-bracket-color, .bg-\\[\\#588157\\]\\/10'); // Cambiado para ser más flexible con clases Tailwind
+        const nameSpan = item.querySelector('.text-gray-700.font-bold');
         const totalSpan = item.querySelector(':scope > span:last-child');
 
-        if (qtySpan && nameSpan && totalSpan) {
-            const qty = qtySpan.innerText.replace('x', '');
+        if (nameSpan && totalSpan) {
+            const qtyStr = qtySpan ? qtySpan.innerText.replace('x', '').trim() : "1";
+            const qty = parseInt(qtyStr) || 1;
             const name = nameSpan.innerText;
-            const total = totalSpan.innerText;
+            const totalVal = parseFloat(totalSpan.innerText.replace('$', '')) || 0;
+            const unitPrice = totalVal / qty;
 
-            const div = document.createElement('div');
-            div.className = "flex justify-between";
-            div.innerHTML = `<span>${qty}x ${name}</span> <span>${total}</span>`;
-            itemsList.appendChild(div);
+            const itemContainer = document.createElement('div');
+            itemContainer.className = "mb-3";
+
+            itemContainer.innerHTML = `
+                <div class="font-bold text-gray-800 uppercase">${name}</div>
+                <div class="flex justify-between text-[10px] text-gray-500 italic">
+                    <span>x${qty}</span>
+                    <div class="flex gap-8">
+                        <span>$${unitPrice.toFixed(2)}</span>
+                        <span class="font-bold text-gray-800">$${totalVal.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+            itemsList.appendChild(itemContainer);
         }
     });
+
+    // Totales
 
     // Totales
     document.getElementById('ticket-subtotal').innerText = `$${subtotalActual.toFixed(2)}`;
