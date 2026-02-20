@@ -82,6 +82,39 @@
             </div>
         </div>
 
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="report-card !p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Ventas Brutas</p>
+                    <h4 id="total-ventas-resumen" class="text-3xl font-black text-[#3a5a40] tracking-tighter">$0.00</h4>
+                </div>
+                <div class="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-hand-holding-usd text-xl"></i>
+                </div>
+            </div>
+            <div class="report-card !p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Propinas</p>
+                    <h4 id="total-propinas-resumen" class="text-3xl font-black text-emerald-600 tracking-tighter">$0.00
+                    </h4>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-coins text-xl"></i>
+                </div>
+            </div>
+            <div class="report-card !p-6 flex items-center justify-between border-2 border-[#588157]/20">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total General</p>
+                    <h4 id="total-general-resumen" class="text-3xl font-black text-[#588157] tracking-tighter">$0.00
+                    </h4>
+                </div>
+                <div class="w-12 h-12 bg-[#588157] text-white rounded-2xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-wallet text-xl"></i>
+                </div>
+            </div>
+        </div>
+
         <div class="report-card mb-10">
             <div class="flex items-center gap-4 mb-8">
                 <div
@@ -91,8 +124,8 @@
                 <div>
                     <h3 class="text-xl font-black text-[#3a5a40] uppercase tracking-tighter">Resumen de Ventas Diarias
                     </h3>
-                    <p class="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Total recaudado de Lunes a
-                        Viernes</p>
+                    <p class="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Desglose de Lunes a
+                        Viernes (Ventas + Propinas)</p>
                 </div>
             </div>
 

@@ -82,25 +82,56 @@ function renderizarVentasDiarias(pedidos) {
     container.innerHTML = '';
 
     const diasNombres = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const ventasPorDia = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const ventasPorDia = { 1: { v: 0, p: 0 }, 2: { v: 0, p: 0 }, 3: { v: 0, p: 0 }, 4: { v: 0, p: 0 }, 5: { v: 0, p: 0 } };
+
+    let totalVentasV = 0;
+    let totalPropinasV = 0;
 
     pedidos.forEach(p => {
         const fecha = new Date(p.created_at);
         const dia = fecha.getDay();
-        // Sumamos solo si es de Lunes (1) a Viernes (5)
+
+        const venta = (parseFloat(p.total) || 0) - (parseFloat(p.descuento) || 0);
+        const propina = parseFloat(p.propina) || 0;
+
+        // Totales globales (para las tarjetas de arriba)
+        totalVentasV += venta;
+        totalPropinasV += propina;
+
+        // Sumamos solo si es de Lunes (1) a Viernes (5) para el desglose diario
         if (dia >= 1 && dia <= 5) {
-            const totalPedido = (parseFloat(p.total) || 0) + (parseFloat(p.propina) || 0) - (parseFloat(p.descuento) || 0);
-            ventasPorDia[dia] += totalPedido;
+            ventasPorDia[dia].v += venta;
+            ventasPorDia[dia].p += propina;
         }
     });
 
+    // Actualizar tarjetas de resumen
+    const lblVentas = document.getElementById('total-ventas-resumen');
+    const lblPropinas = document.getElementById('total-propinas-resumen');
+    const lblGeneral = document.getElementById('total-general-resumen');
+
+    if (lblVentas) lblVentas.innerText = `$${totalVentasV.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+    if (lblPropinas) lblPropinas.innerText = `$${totalPropinasV.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+    if (lblGeneral) lblGeneral.innerText = `$${(totalVentasV + totalPropinasV).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+
     [1, 2, 3, 4, 5].forEach(dia => {
-        const total = ventasPorDia[dia];
+        const datos = ventasPorDia[dia];
+        const subtotal = datos.v + datos.p;
         const card = document.createElement('div');
         card.className = "bg-gray-50/50 rounded-2xl p-6 border border-gray-100 flex flex-col items-center text-center";
         card.innerHTML = `
             <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">${diasNombres[dia]}</span>
-            <span class="text-xl font-black text-[#3a5a40] tracking-tighter text-lg">$${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            <span class="text-xl font-black text-[#3a5a40] tracking-tighter">$${subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            <div class="mt-2 pt-2 border-t border-gray-100 w-full flex flex-col gap-0.5">
+                <div class="flex justify-between text-[9px] font-bold text-gray-400">
+                    <span>VENTA</span>
+                    <span>$${datos.v.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div class="flex justify-between text-[9px] font-bold text-emerald-500">
+                    <span>PROPINA</span>
+                    <span>$${datos.p.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                </div>
+            </div>
         `;
         container.appendChild(card);
     });
@@ -132,7 +163,7 @@ function renderizarGraficaVentas(pedidos) {
         data: {
             labels: diasNombres,
             datasets: [{
-                label: 'Ventas Diarias ($)',
+                label: 'Total General ($)',
                 data: data,
                 borderColor: '#588157',
                 backgroundColor: 'rgba(88, 129, 87, 0.1)',
@@ -161,7 +192,7 @@ function renderizarGraficaVentas(pedidos) {
                     displayColors: false,
                     callbacks: {
                         label: function (context) {
-                            return '$' + context.parsed.y.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+                            return 'Total: $' + context.parsed.y.toLocaleString('es-MX', { minimumFractionDigits: 2 });
                         }
                     }
                 }
@@ -177,7 +208,7 @@ function renderizarGraficaVentas(pedidos) {
                         font: { size: 10, weight: 'bold' },
                         color: '#9ca3af',
                         callback: function (value) {
-                            return '$' + value;
+                            return '$' + value.toLocaleString('es-MX');
                         }
                     }
                 },
